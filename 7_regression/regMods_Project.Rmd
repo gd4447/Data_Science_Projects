@@ -1,0 +1,104 @@
+---
+title: "Regression Models Course Project"
+output: pdf_document
+---
+```{r, include=FALSE}
+library(ggplot2)
+library(dplyr)
+#library(GGally)
+library(corrplot)
+df <- mtcars
+```
+#Executive Summary:
+This report was commissioned to examine the relationship between type of transmission and fuel
+efficiency of a car (miles per gallon). The objective is to analyze predictors of high fuel 
+efficiency and then quantify the relationship between type of transmission and miles per gallon
+(mpg).  
+There are two types of analyses performed in this report. The first one is a simple exploratory effort 
+to draw conclusions based on simple visualizations. The second type consists of applying ordinary least squares and multivariate linear regressions to the data in an attempt to quantify the effect of transmission type on mpg. 
+  
+The following are the results and recommendations based on the analyses:
+
+* Regarding fuel efficiency, a manual transmission is slightly better than an automatic transmission.
+
+    + This, of course, depends on the style of driving of any particular individual since they have control of rpm.
+    
+* Standard transmission yields, on average, a 2.08 mpg increase in fuel efficiency compared to automatic transmissions with a 1.37 standard error. It must be noted, however, that the P-value of this parameter is relatively high at .14, which suggests the need for additional study.
+
+
+
+#Analysis: 
+
+In this exercise, the data is given in a tidy, tabular format that is easily analyzed. The variables
+'cyl', 'vs', 'am', 'gear', and 'carb' will be changed to factor variables as necessary.
+
+###1.   Exploratory Analysis:  
+One method used in this exercise was Exploratory Analysis. The purpose of this type of analysis
+is to find relationships in the data that were not previously known, but it cannot be used alone to 
+predict or generalize (correlation is not causation!).
+
+The first step in exploratory analysis was to plot the outcome and regressor of interest .in this
+case "mpg" vs. "am" [Appendix: Fig. 1]. Based on the plot, we can hypothesize that manual transmission 
+cars have, on average, higher mpg than automatic cars. 
+
+###2.   Ordinary Least Squares (OLS)
+
+In order to accurately determine the response that type of transmission causes on mpg, its effect needs to be isolated from other regressors. Simple OLS fit [Appendix: Fit 0 - OLS] indicates that standard transmission yields, on average, a 7.24 mpg increase in fuel efficiency compared to automatic transmission. It must be noted, however, that the standard error of the residuals is 4.9 and the R^2 value is only 36%.
+
+###3.   Multivariate Linear Regression & Nested Model Testing
+A relatively high error and low R^2 value in the OLS indicate a poor fit, and therefore a multivariate regression fit will be performed. It is assumed that some regressors have more influence on mpg than others, and therefore a Nested Model test approach will be implemented. Based on basic automobile knowledge, it can be assumed that weight of a car and engine size have a considerable effect on fuel efficiency. The effect that all other variables have on mpg will also be tested, but their addition to the model will depend on their statistical significance.  
+
+Upon inspection of the data columns, it is apparent that some of the variables are strongly correlated. For example, there could be multiple descriptors of 'engine size' such as number of cylinders, displacement and horsepower. Before a model is tested, the correlations between all variables must be tested. A visualization of all the correlations was performed using the corrplot package [Appendix: Fig. 2]. It is apparent from the plot that wt, hp, cyl, and disp have the most effect on mpg. At the same time, however, wt-disp, hp-cyl, cyl-disp, hp-disp all have strong correlations. Based on these observations,the regression model will use engine size, weight, and transmission type as regressors. Hp will be used as the 'engine size' variable (instead of cyl or disp) due to its low correlation with transmission type.
+  
+The model summary below [Details in Appendix: Fit 1 - Multivariate] shows that most of the variation in mpg from the first OLS model can be 'explained away' by other predictors namely hp and weight. The low P values of wt and hp in our new model indicate that they are majorly significant and therefore relevant to the model. This model indicates that that standard transmission yields, on average, a 2.08 mpg increase in fuel efficiency compared to automatic transmission with a 1.37 standard error. It must be noted, however, that the P-value is .14 for the factor variable(am)1, which is typically not considered statistically significant in a hypothesis test.
+
+####Fit 1 coefficients:
+```{r, echo=TRUE}
+fit1 <- lm(mpg ~ wt + hp + factor(am), data=df)
+summary(fit1)$coef
+```
+
+For completeness, a model summary including the effect of all available predictors is included for comparison [Appendix: Fit ALL - Multivariate]. This model indicates a .96 increase in mpg for standard transmissions. Note that fitting all the variables makes all the P-values statistically insignificant. In addition, the error is larger and the adjusted R^2 value is lower, indicating a poor model fit. Based on these results, the final model for this project will remain Fit 1.
+
+The residual plots for the chosen model (fit 1) is located in the appendix. The residual plots indicate that the errors are random with no particular pattern. As a result, we can be confident that there is no obvious correlation left unexplained by the model variables.
+
+\pagebreak  
+
+##Appendix:  
+
+#### Fig. 1 - mpg vs. transmission type (0=auto, 1=std)
+```{r, fig.width=10, fig.height=5,echo=FALSE}
+g <-ggplot(df, aes(y=mpg, x=am)) +
+    geom_point(aes(size=3, colour=factor(am), alpha=.8)) +
+    scale_color_manual(values=c("dodgerblue4", "darkolivegreen"), guide=FALSE)
+g
+```
+
+#### Fig. 2 - Correlation Plot:
+```{r, fig.width=6, fig.height=4, echo= FALSE}
+corrplot(cor(df), type="upper", order="hclust", tl.col="black", tl.srt=0)
+```
+
+#### Fit 0 - OLS
+```{r, echo=FALSE}
+fit0 <- lm(mpg ~ factor(am), data=df)
+summary(fit0)
+par(mfrow=c(2,2),oma = c(1,1,0,0) +.5 ,mar = c(0,0,1,1)+2, mgp = c(1.2, .5, 0))
+```
+
+#### Fit 1 - Multivariate
+```{r, echo=FALSE}
+fit1 <- lm(mpg ~ wt + hp + factor(am), data=df)
+summary(fit1)
+par(mfrow=c(2,2), oma = c(1,1,0,0) +.5 ,mar = c(0,0,1,1)+2, mgp = c(1.2, .5, 0))
+plot(fit1)
+```
+
+#### Fit ALL - Mutivariate
+```{r, echo=FALSE}
+fitALL <- lm(mpg ~ wt + hp + cyl + disp + drat + qsec + factor(vs)
+             + factor(gear)+ factor(carb) + factor(am) , data=df)
+summary(fitALL)$coef
+# par(mfrow=c(2,2),oma = c(1,1,0,0) +.5 ,mar = c(0,0,1,1)+2, mgp = c(1.2, .5, 0))
+# plot(fitALL)
+```
